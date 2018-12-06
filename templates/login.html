@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% from "_formhelpers.html" import render_field %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<form action="" method="POST">
+	{{ form.csrf_token }}
+	{% if form.csrf_token.errors %}
+	<h1>You have submitted an invalid CSRF token</h1>
+	{% endif %}
+	<dl>
+		{{ render_field(form.username) }}
+		{{ render_field(form.password) }}
+	</dl>
+	<input type="submit" value="Login"></form>
+</form>
+{% if next != 'index' %}
+<a href="{{ url_for('register') }}?next={{ next }}">Register</a>
+{% else %}
+<a href="{{ url_for('register') }}">Register</a>
+{% endif %}
+{% endblock %}

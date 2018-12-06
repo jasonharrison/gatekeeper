@@ -1,0 +1,10 @@
+" gatekeeper accessible at http(s)://gatekeeper.example.com/
+[main]
+Domain = example.com
+Subdomain = gatekeeper
+SecretKey = changeme
+Debug = no
+
+" application accessible at http(s)://app.gatekeeper.example.com/
+[routes]
+app = http://127.0.0.1:3000/

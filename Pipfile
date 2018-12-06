@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+flask = "*"
+wtforms = "*"
+requests = "*"
+passlib = "*"
+pony = "*"
+gunicorn = "*"
+gevent = "*"
+htmlmin = "*"
+
+[dev-packages]
+vulture = "*"
+"flake8" = "*"
+isort = "*"
+neovim = "*"
+
+[requires]
+python_version = "3.5"
