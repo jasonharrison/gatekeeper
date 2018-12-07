@@ -4,6 +4,7 @@ Domain = example.com
 Subdomain = gatekeeper
 SecretKey = changeme
 Debug = no
+AllowRegistration = yes
 
 " application accessible at http(s)://app.gatekeeper.example.com/
 [routes]
