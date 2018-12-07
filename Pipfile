@@ -12,6 +12,7 @@ pony = "*"
 gunicorn = "*"
 gevent = "*"
 htmlmin = "*"
+tldextract = "*"
 
 [dev-packages]
 vulture = "*"

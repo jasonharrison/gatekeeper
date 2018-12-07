@@ -1,42 +1,77 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=utf-8;">
-		<title>{% block title %}{% endblock %}</title>
-	</head>
-	<body>
-		<div id="container">
-			<div style="position: relative; top: 0px; right: 15px; text-align: right;">
-				{% if 'userid' in session %}
-				Logged in as {{ g.user['name'] }} | <a href="/Logout">Logout</a>
-				{% else %}
-				<a href="/Login?next={{ request.full_path }}">Login</a>
-				{% endif %}
-			</div>
-			<div id="content">
-				<div id="main-content">
-					<div id="menu-bar">
-						<span id="menu-options"></span>
-						{% with messages = get_flashed_messages() %}
-						{% if messages %}
-						<ul class=flashes>
-							{% for message in messages %}
-							<li style="border:1px solid #FF0000;background-color:#FFDDDD">{{ message }}</li>
-							{% endfor %}
-						</ul>
-						{% endif %}
-						{% endwith %}
-					</div>
-					<div id="header-container"><h3 id="header">{% block h1 %}{% endblock %}</h3></div>
-					<div id="text">
-						{% block content %}
-						{% endblock %}
-						<p align="center">
+<!doctype html>
+<!--
+  Material Design Lite
+  Copyright 2015 Google Inc. All rights reserved.
 
-						</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	</body>
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <title>{% block title %} {% endblock %}</title>
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:regular,bold,italic,thin,light,bolditalic,black,medium&amp;lang=en">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="/static/external/material.min.css">
+    <link rel="stylesheet" href="/static/style-main.css">
+    <style>
+#view-source {
+  position: fixed;
+  display: block;
+  right: 0;
+  bottom: 0;
+  margin-right: 40px;
+  margin-bottom: 40px;
+  z-index: 900;
+}
+    </style>
+  </head>
+  <body>
+    <div class="demo-layout mdl-layout mdl-js-layout mdl-layout--fixed-drawer mdl-layout--fixed-header">
+      <header class="demo-header mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600">
+        <div class="mdl-layout__header-row">
+          <span class="mdl-layout-title">Home</span>
+          <div class="mdl-layout-spacer"></div>
+          <button class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon" id="hdrbtn">
+            <i class="material-icons">more_vert</i>
+          </button>
+          <ul class="mdl-menu mdl-js-menu mdl-js-ripple-effect mdl-menu--bottom-right" for="hdrbtn">
+            <a class="mdl-menu__item" href="{{ url_for('logout') }}">Logout</a>
+          </ul>
+        </div>
+      </header>
+      <div class="demo-drawer mdl-layout__drawer mdl-color--blue-grey-900 mdl-color-text--blue-grey-50">
+        <header class="demo-drawer-header">
+          <div class="demo-avatar-dropdown">
+            <span>{{ g.user['name'] }} </span>
+            <div class="mdl-layout-spacer"></div>
+            <a href="{{ url_for('logout') }}" id="logout" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon">
+              <i class="material-icons" role="presentation">lock</i>
+            </a>
+          </div>
+        </header>
+        <nav class="demo-navigation mdl-navigation mdl-color--blue-grey-800">
+          <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">home</i>Home</a>
+          <div class="mdl-layout-spacer"></div>
+        </nav>
+      </div>
+      <main class="mdl-layout__content mdl-color--grey-100">
+        {% block content %}
+        {% endblock %}
+      </main>
+    </div>
+    <script src="/static/external/material.min.js"></script>
+  </body>
 </html>

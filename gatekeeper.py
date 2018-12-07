@@ -1,4 +1,5 @@
 import configparser
+import tldextract
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -16,18 +17,24 @@ from wtforms.csrf.session import SessionCSRF
 
 config = configparser.ConfigParser()
 config.read('config.ini')
-main_config = config['main']
-route_config = config['routes']
-
-DEBUG = main_config['Debug'] == 'yes'
-MAIN_DOMAIN = main_config['Domain']
-LINK_DOMAIN = main_config['Subdomain'] + '.' + MAIN_DOMAIN
+MAIN_CONFIG = config['main']
+ROUTE_CONFIG = config['routes']
+ALLOW_REGISTRATION = MAIN_CONFIG['AllowRegistration'] == 'yes'
+DEBUG = MAIN_CONFIG['Debug'] == 'yes'
+MAIN_DOMAIN = MAIN_CONFIG['Domain']
+LINK_DOMAIN = MAIN_CONFIG['Subdomain'] + '.' + MAIN_DOMAIN
 no_redir = [None, 'login', 'register']
 
 app = Flask(__name__, static_folder=None)
-app.secret_key = main_config['SecretKey'].encode()
+app.secret_key = MAIN_CONFIG['SecretKey'].encode()
 app.config['SERVER_NAME'] = LINK_DOMAIN
 app.url_map.subdomain_matching = True
+app.static_folder = 'static'
+app.add_url_rule('/static/<path:filename>',
+                                  endpoint='static',
+                                  subdomain='',
+                                  view_func=app.send_static_file)
+
 pwd_context = CryptContext(
     schemes=["pbkdf2_sha512"],
     deprecated="auto",
@@ -78,9 +85,11 @@ def get_user():
 
 
 def safe_next_url(url):
-    if urllib.parse.urlparse(url).netloc.endswith(MAIN_DOMAIN):
-        return url
-    return "/"
+    extracted = tldextract.extract(url.lower())
+    domain = extracted.registered_domain
+    if domain != '' and domain != MAIN_DOMAIN:
+        return "/"
+    return url
 
 
 def requires_auth(f):
@@ -102,16 +111,13 @@ def login():
     form = LoginForm(request.form,  meta={'csrf_context': session})
     if request.method == "POST" and form.validate():
         c = Account.get(username=form.username.data.lower())
-        if not c:
+        if not c or not pwd_context.verify(form.password.data, c.password):
             flash("Incorrect username or password.")
-            return render_template("login.html", form=form, next=next)
-        if not pwd_context.verify(form.password.data, c.password):
-            flash("Incorrect username or password.")
-            return render_template("login.html", form=form, next=next)
+            return render_template("login.html", form=form, next=next, allow_registration=ALLOW_REGISTRATION)
         session['userid'] = c.id
         return redirect(next_url)
     else:
-        return render_template("login.html", form=form, next=next)
+        return render_template("login.html", form=form, next=next, allow_registration=ALLOW_REGISTRATION)
 
 
 @app.route("/Logout", host="inet.jasonharrison.us")
@@ -127,6 +133,8 @@ def logout():
 @app.route("/Register", methods=['GET', 'POST'], subdomain="")
 @db_session
 def register():
+    if not ALLOW_REGISTRATION:
+        return abort(404)
     next = request.args.get('next') if (
         request.args.get('next') not in no_redir) else 'catch_all'
     next_url = safe_next_url(next)
@@ -146,8 +154,8 @@ def register():
 @app.route("/", subdomain="")
 @requires_auth
 @db_session
-def index():
-    return render_template("index.html")
+def home():
+    return render_template("home.html")
 
 
 @app.route("/", defaults={"path": ""}, methods=['GET', 'POST'], subdomain="<subdomain>")
@@ -156,9 +164,9 @@ def index():
 @requires_auth
 def catch_all(path, subdomain):
     subdomain = subdomain.lower()
-    if subdomain not in route_config:
+    if subdomain not in ROUTE_CONFIG:
         return abort(404, "No endpoint [%s]" % subdomain)
-    return proxy(route_config[subdomain])
+    return proxy(ROUTE_CONFIG[subdomain])
 
 
 def proxy(endpoint, *args, **kwargs):
