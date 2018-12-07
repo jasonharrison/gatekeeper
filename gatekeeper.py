@@ -1,4 +1,5 @@
 import configparser
+import tldextract
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -84,9 +85,11 @@ def get_user():
 
 
 def safe_next_url(url):
-    if urllib.parse.urlparse(url).netloc.endswith(MAIN_DOMAIN):
-        return url
-    return "/"
+    extracted = tldextract.extract(url.lower())
+    domain = extracted.registered_domain
+    if domain != '' and domain != MAIN_DOMAIN:
+        return "/"
+    return url
 
 
 def requires_auth(f):
@@ -161,9 +164,9 @@ def home():
 @requires_auth
 def catch_all(path, subdomain):
     subdomain = subdomain.lower()
-    if subdomain not in g.ROUTE_CONFIG:
+    if subdomain not in ROUTE_CONFIG:
         return abort(404, "No endpoint [%s]" % subdomain)
-    return proxy(g.ROUTE_CONFIG[subdomain])
+    return proxy(ROUTE_CONFIG[subdomain])
 
 
 def proxy(endpoint, *args, **kwargs):
