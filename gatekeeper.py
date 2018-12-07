@@ -28,6 +28,12 @@ app = Flask(__name__, static_folder=None)
 app.secret_key = main_config['SecretKey'].encode()
 app.config['SERVER_NAME'] = LINK_DOMAIN
 app.url_map.subdomain_matching = True
+app.static_folder = 'static'
+app.add_url_rule('/static/<path:filename>',
+                                  endpoint='static',
+                                  subdomain='',
+                                  view_func=app.send_static_file)
+
 pwd_context = CryptContext(
     schemes=["pbkdf2_sha512"],
     deprecated="auto",

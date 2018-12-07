@@ -1,21 +1,45 @@
-{% extends "layout.html" %}
 {% from "_formhelpers.html" import render_field %}
-{% block title %}Login{% endblock %}
-{% block content %}
-<form action="" method="POST">
-	{{ form.csrf_token }}
-	{% if form.csrf_token.errors %}
-	<h1>You have submitted an invalid CSRF token</h1>
-	{% endif %}
-	<dl>
-		{{ render_field(form.username) }}
-		{{ render_field(form.password) }}
-	</dl>
-	<input type="submit" value="Login"></form>
-</form>
-{% if next != 'index' %}
-<a href="{{ url_for('register') }}?next={{ next }}">Register</a>
-{% else %}
-<a href="{{ url_for('register') }}">Register</a>
-{% endif %}
-{% endblock %}
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Material Design Lite Login From</title>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+		<link rel="stylesheet" href="/static/external/material.min.css">
+		<link rel="stylesheet" href="/static/style-login.css">
+	</head>
+	<body>
+		<div class="mdl-layout mdl-js-layout">
+			<div id="login-container" class="mdl-card mdl-shadow--16dp">
+				<div class="mdl-card__supporting-text">
+					<div id="login-fab" class="mdl-color--accent mdl-color-text--white">
+						<form action="" method="POST">
+							{{ form.csrf_token }}
+							<i id="lock-icon" class="material-icons">lock</i>
+					</div>
+					<div id="card-heading">
+						Login
+					</div>
+					<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+						{{ render_field(form.username) }}
+					</div>
+					<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+						{{ render_field(form.password) }}
+					</div>
+					<button type="submit" id="login-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored mdl-color-text--white">
+						Login
+					</button>
+						</form>
+				</div>
+
+				<div class="mdl-card__actions">
+					<button class="mdl-button mdl-js-button mdl-button--primary">Register</button>
+					<button id='forgotpassword' class="mdl-button mdl-js-button mdl-button--primary">Forgot Password</button>
+				</div>
+			</div>
+		</div>
+		<script defer src="/static/external/material.min.js"></script>
+	</body>
+</html>
