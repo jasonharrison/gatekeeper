@@ -7,5 +7,9 @@ Debug = no
 AllowRegistration = yes
 
 " application accessible at http(s)://app.gatekeeper.example.com/
+
 [routes]
 app = http://127.0.0.1:3000/
+
+[public-routes]
+uspsbot = http://localhost:11001

@@ -18,11 +18,24 @@ from wtforms.csrf.session import SessionCSRF
 config = configparser.ConfigParser()
 config.read('config.ini')
 MAIN_CONFIG = config['main']
-ROUTE_CONFIG = config['routes']
+PRIVATE_ROUTES = config['routes']
+PUBLIC_ROUTES = config['public-routes']
 ALLOW_REGISTRATION = MAIN_CONFIG['AllowRegistration'] == 'yes'
 DEBUG = MAIN_CONFIG['Debug'] == 'yes'
 MAIN_DOMAIN = MAIN_CONFIG['Domain']
-LINK_DOMAIN = MAIN_CONFIG['Subdomain'] + '.' + MAIN_DOMAIN
+
+if 'Subdomain' in MAIN_CONFIG:
+    LINK_DOMAIN = MAIN_CONFIG['Subdomain'] + '.' + MAIN_DOMAIN
+else:
+    LINK_DOMAIN = MAIN_DOMAIN
+
+if 'AhSubdomain' in MAIN_CONFIG:
+    AH_SUBDOMAIN = MAIN_CONFIG['AhSubdomain']
+    AH_DOMAIN = AH_SUBDOMAIN + "." + MAIN_DOMAIN
+else:
+    AH_SUBDOMAIN = None
+    AH_DOMAIN = LINK_DOMAIN
+
 no_redir = [None, 'login', 'register']
 
 app = Flask(__name__, static_folder=None)
@@ -97,7 +110,7 @@ def requires_auth(f):
     def decorated(*args, **kwargs):
         if 'userid' not in session:
             next = safe_next_url(request.url)
-            return redirect("https://"+LINK_DOMAIN+"/Login?" + urllib.parse.urlencode({'next': next}))
+            return redirect("https://"+AH_DOMAIN+"/Login?" + urllib.parse.urlencode({'next': next}))
         return f(*args, **kwargs)
     return decorated
 
@@ -120,7 +133,7 @@ def login():
         return render_template("login.html", form=form, next=next, allow_registration=ALLOW_REGISTRATION)
 
 
-@app.route("/Logout", host="inet.jasonharrison.us")
+@app.route("/Logout", subdomain="")
 def logout():
     next = request.args.get('next') if (
         request.args.get('next') not in no_redir) else ''
@@ -161,12 +174,18 @@ def home():
 @app.route("/", defaults={"path": ""}, methods=['GET', 'POST'], subdomain="<subdomain>")
 @app.route("/<string:path>", methods=['GET', 'POST'], subdomain="<subdomain>")
 @app.route("/<path:path>", methods=['GET', 'POST'], subdomain="<subdomain>")
-@requires_auth
 def catch_all(path, subdomain):
     subdomain = subdomain.lower()
-    if subdomain not in ROUTE_CONFIG:
-        return abort(404, "No endpoint [%s]" % subdomain)
-    return proxy(ROUTE_CONFIG[subdomain])
+    if subdomain in PRIVATE_ROUTES:
+        private_catch_all(path, subdomain)
+    elif subdomain in PUBLIC_ROUTES:
+        return proxy(PUBLIC_ROUTES[subdomain])
+    return abort(404, "No endpoint [%s]" % subdomain)
+
+
+@requires_auth
+def private_catch_all(path, subdomain):
+    return proxy(PRIVATE_ROUTES[subdomain])
 
 
 def proxy(endpoint, *args, **kwargs):
@@ -194,6 +213,15 @@ def proxy(endpoint, *args, **kwargs):
     response = Response(resp.content, resp.status_code, headers)
     return response
 
+
+if AH_SUBDOMAIN:
+    app.add_url_rule("/Login", "login", login, subdomain=AH_SUBDOMAIN)
+    app.add_url_rule("/Logout", "logout", logout, subdomain=AH_SUBDOMAIN)
+    app.add_url_rule("/Register", "register", register, subdomain=AH_SUBDOMAIN)
+    app.add_url_rule('/static/<path:filename>',
+                                      endpoint='static',
+                                      subdomain=AH_SUBDOMAIN,
+                                      view_func=app.send_static_file)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
