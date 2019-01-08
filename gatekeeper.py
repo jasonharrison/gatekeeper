@@ -177,7 +177,7 @@ def home():
 def catch_all(path, subdomain):
     subdomain = subdomain.lower()
     if subdomain in PRIVATE_ROUTES:
-        private_catch_all(path, subdomain)
+        return private_catch_all(path, subdomain)
     elif subdomain in PUBLIC_ROUTES:
         return proxy(PUBLIC_ROUTES[subdomain])
     return abort(404, "No endpoint [%s]" % subdomain)
