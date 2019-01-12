@@ -1,5 +1,6 @@
 import configparser
 import tldextract
+import os
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -198,7 +199,7 @@ def proxy(endpoint, *args, **kwargs):
             data=request.get_data(),
             cookies=request.cookies,
             allow_redirects=True,
-            timeout=5
+            timeout=int(os.environ.get("GK_TIMEOUT", 5))
         )
     except requests.exceptions.ConnectionError:
         # HTTP 502: Bad Gateway
@@ -215,9 +216,10 @@ def proxy(endpoint, *args, **kwargs):
 
 
 if AH_SUBDOMAIN:
-    app.add_url_rule("/Login", "login", login, subdomain=AH_SUBDOMAIN)
+    app.add_url_rule("/Login", "login", login, subdomain=AH_SUBDOMAIN, methods=['GET', 'POST'])
     app.add_url_rule("/Logout", "logout", logout, subdomain=AH_SUBDOMAIN)
-    app.add_url_rule("/Register", "register", register, subdomain=AH_SUBDOMAIN)
+    app.add_url_rule("/Register", "register", register, subdomain=AH_SUBDOMAIN, methods=['GET', 'POST'])
+    app.add_url_rule("/", "home", home, subdomain=AH_SUBDOMAIN)
     app.add_url_rule('/static/<path:filename>',
                                       endpoint='static',
                                       subdomain=AH_SUBDOMAIN,
