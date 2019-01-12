@@ -12,6 +12,15 @@
   </head>
   <body>
     <div class="mdl-layout mdl-js-layout">
+      {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      <ul class=flashes>
+        {% for message in messages %}
+        <li style="text-align: center; border:1px solid #FF0000;background-color:#FFDDDD">{{ message }}</li>
+        {% endfor %}
+        {% endif %}
+      </ul>
+      {% endwith %}
       <div id="login-container" class="mdl-card mdl-shadow--16dp">
         <div class="mdl-card__supporting-text">
           <form action="" method="POST">
