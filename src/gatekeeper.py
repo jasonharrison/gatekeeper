@@ -1,3 +1,6 @@
+import struct
+
+import time
 import configparser
 import tldextract
 import os
@@ -6,7 +9,7 @@ import urllib.parse
 import urllib.request
 from datetime import timedelta
 from functools import wraps
-
+import pony.orm.dbapiprovider
 import requests
 from flask import (Flask, Response, abort, flash, g, redirect, render_template,
                    request, session)
@@ -56,7 +59,34 @@ pwd_context = CryptContext(
 
 sql_debug(DEBUG)
 db = Database()
-db.bind('sqlite', 'data.sqlite', create_db=True)
+
+USE_MYSQL = "MYSQL_ROOT_PASSWORD" in os.environ
+if USE_MYSQL:
+    MYSQL_HOST = 'db'
+    MYSQL_USER = 'root'
+    MYSQL_PASSWORD = os.environ.get("MYSQL_ROOT_PASSWORD")
+    MYSQL_DB = os.environ.get("MYSQL_DATABASE", "gatekeeper") 
+    tries = 0
+    connected = False
+    while tries <= 5 and not connected:
+        tries += 1
+        try:
+            db.bind(
+                provider='mysql',
+                host=MYSQL_HOST,
+                user=MYSQL_USER,
+                passwd=MYSQL_PASSWORD,
+                db=MYSQL_DB)
+            break
+        except pony.orm.dbapiprovider.OperationalError as e:
+            if tries == 5:
+                raise e
+            print("Waiting for database ...")
+            time.sleep(7)
+
+
+else:
+    db.bind(provider='sqlite', filename='gatekeeper.db', create_db=True)
 
 
 class Account(db.Entity):
@@ -66,6 +96,24 @@ class Account(db.Entity):
 
 
 db.generate_mapping(create_tables=True)
+
+
+@db_session
+def create_new_user(**args):
+    args['password'] = pwd_context.encrypt(args['password'])
+    Account(**args)
+    commit()
+
+
+@db_session
+def get_account_count():
+    return len(Account.select())
+
+
+if get_account_count() == 0:
+    create_new_user(name=os.environ['GK_DEFAULT_NAME'],
+            username=os.environ['GK_DEFAULT_USERNAME'],
+            password=os.environ['GK_DEFAULT_PASSWORD'])
 
 
 class SecureForm(Form):
@@ -154,9 +202,10 @@ def register():
     next_url = safe_next_url(next)
     form = RegisterForm(request.form, meta={'csrf_context': session})
     if request.method == "POST" and form.validate():
-        hash = pwd_context.encrypt(form.password.data)
-        c = Account(name=form.name.data,
-                    username=form.username.data.lower(), password=hash)
+        c = create_new_user(
+                name=form.name.data,
+                username=form.username.data.lower(),
+                password=form.password.data)
         commit()
         session['userid'] = c.id
         flash("You have successfully registered.")
