@@ -13,12 +13,16 @@ gunicorn = "*"
 gevent = "*"
 htmlmin = "*"
 tldextract = "*"
+pymysql = "*"
+tornado = "*"
 
 [dev-packages]
 vulture = "*"
 "flake8" = "*"
 isort = "*"
 neovim = "*"
+pylint = "*"
+yapf = "*"
 
 [requires]
-python_version = "3.5"
+python_version = "3"
