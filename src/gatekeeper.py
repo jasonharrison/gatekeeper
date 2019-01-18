@@ -1,5 +1,4 @@
 import struct
-
 import time
 import configparser
 import tldextract
@@ -273,6 +272,26 @@ if AH_SUBDOMAIN:
                                       endpoint='static',
                                       subdomain=AH_SUBDOMAIN,
                                       view_func=app.send_static_file)
+
+
+def get_gatekeeper_info():
+    host = request.host.split(":")[0]
+    return "gatekeeper at %s" % host
+
+
+@app.errorhandler(502)
+def bad_gateway(error):
+    error_p = str(error).split("502 Bad Gateway: ")[1]
+    return render_template('error.html', error_h1="Bad Gateway", error_p=error_p), 502 
+
+
+@app.errorhandler(404)
+def page_not_found(error):
+    error_p = str(error).split("404 Not Found: ")[1]
+    return render_template('error.html', error_h1="Page not Found", error_p=error_p), 404
+
+
+app.jinja_env.globals.update(get_gatekeeper_info=get_gatekeeper_info)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")

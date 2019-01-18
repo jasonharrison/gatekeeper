@@ -27,3 +27,10 @@ services:
       - 'config.env'
     ports:
       - 0.0.0.0:443:8443
+    networks:
+      - gatekeeper
+      - default
+
+networks:
+  gatekeeper:
+    name: gatekeeper_net
