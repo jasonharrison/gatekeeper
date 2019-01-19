@@ -1,13 +1,13 @@
-_.subdomain_matching  # unused attribute (gatekeeper.py:47)
-_.static_folder  # unused attribute (gatekeeper.py:48)
-Meta  # unused class (gatekeeper.py:119)
-csrf  # unused variable (gatekeeper.py:120)
-csrf_class  # unused variable (gatekeeper.py:121)
-csrf_secret  # unused variable (gatekeeper.py:122)
-csrf_time_limit  # unused variable (gatekeeper.py:123)
-confirm  # unused variable (gatekeeper.py:138)
-get_user  # unused function (gatekeeper.py:141)
-_.user  # unused attribute (gatekeeper.py:145)
-catch_all  # unused function (gatekeeper.py:223)
-bad_gateway  # unused function (gatekeeper.py:282)
-page_not_found  # unused function (gatekeeper.py:288)
+_.subdomain_matching
+_.static_folder
+Meta
+csrf
+csrf_class
+csrf_secret
+csrf_time_limit
+confirm
+get_user
+_.user
+catch_all
+bad_gateway
+page_not_found
