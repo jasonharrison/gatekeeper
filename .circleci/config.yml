@@ -1,0 +1,47 @@
+version: 2
+
+jobs:
+  gatekeeper:
+    docker:
+      - image: circleci/python:3.6.4
+        environment:
+          PIPENV_VENV_IN_PROJECT: true
+          GK_DEFAULT_NAME: "John Doe"
+          GK_DEFAULT_USERNAME: "John"
+          GK_DEFAULT_PASSWORD: "password"
+    
+    working_directory: ~/gatekeeper/src
+    steps:
+      - checkout:
+          path: ~/gatekeeper
+      - run:
+          name: Copy Pipfile, Pipfile.lock to working directory
+          command: cp ../Pipfile* .
+      - run:
+          name: install pipenv
+          command: sudo pip install pipenv; pipenv install --dev
+      - restore_cache:
+          keys:
+            # when lock file changes, use increasingly general patterns to restore cache
+            - pip-packages-v1-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
+            - pip-packages-v1-{{ .Branch }}-
+            - pip-packages-v1-
+      - save_cache:
+          paths:
+            - ~/.local/share/virtualenvs  # this path depends on where pipenv creates a virtualenv
+          key: pip-packages-v1-{{ .Branch }}-{{ checksum "Pipfile.lock" }}    
+      - run:
+          name: Run vulture at 60% confidence
+          command: pipenv run vulture --min-confidence 60 whitelist_gatekeeper.py gatekeeper.py
+      - run:
+          name: Check formatting 
+          command: pipenv run yapf -d --style google whitelist_gatekeeper.py gatekeeper.py
+      - run: 
+          name: Check order of imports
+          command: pipenv run isort --check-only --diff whitelist_gatekeeper.py gatekeeper.py
+
+workflows:
+    version: 2
+    test:
+        jobs:
+          - gatekeeper

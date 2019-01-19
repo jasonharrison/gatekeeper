@@ -1,20 +1,19 @@
-import struct
-import time
 import configparser
-import tldextract
 import os
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import timedelta
 from functools import wraps
+
 import pony.orm.dbapiprovider
 import requests
+import tldextract
 from flask import (Flask, Response, abort, flash, g, redirect, render_template,
                    request, session)
 from passlib.context import CryptContext
 from pony.orm import *
-from werkzeug.urls import url_parse
 from wtforms import Form, PasswordField, StringField, validators
 from wtforms.csrf.session import SessionCSRF
 
@@ -46,10 +45,11 @@ app.secret_key = MAIN_CONFIG['SecretKey'].encode()
 app.config['SERVER_NAME'] = LINK_DOMAIN
 app.url_map.subdomain_matching = True
 app.static_folder = 'static'
-app.add_url_rule('/static/<path:filename>',
-                                  endpoint='static',
-                                  subdomain='',
-                                  view_func=app.send_static_file)
+app.add_url_rule(
+    '/static/<path:filename>',
+    endpoint='static',
+    subdomain='',
+    view_func=app.send_static_file)
 
 pwd_context = CryptContext(
     schemes=["pbkdf2_sha512"],
@@ -64,7 +64,7 @@ if USE_MYSQL:
     MYSQL_HOST = 'db'
     MYSQL_USER = 'root'
     MYSQL_PASSWORD = os.environ.get("MYSQL_ROOT_PASSWORD")
-    MYSQL_DB = os.environ.get("MYSQL_DATABASE", "gatekeeper") 
+    MYSQL_DB = os.environ.get("MYSQL_DATABASE", "gatekeeper")
     tries = 0
     connected = False
     while tries <= 5 and not connected:
@@ -82,7 +82,6 @@ if USE_MYSQL:
                 raise e
             print("Waiting for database ...")
             time.sleep(7)
-
 
 else:
     db.bind(provider='sqlite', filename='gatekeeper.db', create_db=True)
@@ -110,12 +109,14 @@ def get_account_count():
 
 
 if get_account_count() == 0:
-    create_new_user(name=os.environ['GK_DEFAULT_NAME'],
-            username=os.environ['GK_DEFAULT_USERNAME'],
-            password=os.environ['GK_DEFAULT_PASSWORD'])
+    create_new_user(
+        name=os.environ['GK_DEFAULT_NAME'],
+        username=os.environ['GK_DEFAULT_USERNAME'],
+        password=os.environ['GK_DEFAULT_PASSWORD'])
 
 
 class SecureForm(Form):
+
     class Meta:
         csrf = True
         csrf_class = SessionCSRF
@@ -125,16 +126,19 @@ class SecureForm(Form):
 
 class LoginForm(SecureForm):
     username = StringField(
-        'Username', [validators.required(), validators.Length(min=4, max=25)])
+        'Username', [validators.required(),
+                     validators.Length(min=4, max=25)])
     password = PasswordField('Password', [validators.required()])
 
 
 class RegisterForm(SecureForm):
     name = StringField('Real Name', [validators.required()])
     username = StringField('Username', [validators.required()])
-    password = PasswordField('Password', [validators.required(),
-                                          validators.Length(min=6),
-                                          validators.EqualTo('confirm', message='Passwords must match')])
+    password = PasswordField('Password', [
+        validators.required(),
+        validators.Length(min=6),
+        validators.EqualTo('confirm', message='Passwords must match')
+    ])
     confirm = PasswordField('Repeat Password')
 
 
@@ -154,12 +158,17 @@ def safe_next_url(url):
 
 
 def requires_auth(f):
+
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'userid' not in session:
             next = safe_next_url(request.url)
-            return redirect("https://"+AH_DOMAIN+"/Login?" + urllib.parse.urlencode({'next': next}))
+            return redirect("https://" + AH_DOMAIN + "/Login?" +
+                            urllib.parse.urlencode({
+                                'next': next
+                            }))
         return f(*args, **kwargs)
+
     return decorated
 
 
@@ -169,16 +178,24 @@ def login():
     next = request.args.get('next') if (
         request.args.get('next') not in no_redir) else '/'
     next_url = safe_next_url(next)
-    form = LoginForm(request.form,  meta={'csrf_context': session})
+    form = LoginForm(request.form, meta={'csrf_context': session})
     if request.method == "POST" and form.validate():
         c = Account.get(username=form.username.data.lower())
         if not c or not pwd_context.verify(form.password.data, c.password):
             flash("Incorrect username or password.")
-            return render_template("login.html", form=form, next=next, allow_registration=ALLOW_REGISTRATION)
+            return render_template(
+                "login.html",
+                form=form,
+                next=next,
+                allow_registration=ALLOW_REGISTRATION)
         session['userid'] = c.id
         return redirect(next_url)
     else:
-        return render_template("login.html", form=form, next=next, allow_registration=ALLOW_REGISTRATION)
+        return render_template(
+            "login.html",
+            form=form,
+            next=next,
+            allow_registration=ALLOW_REGISTRATION)
 
 
 @app.route("/Logout", subdomain="")
@@ -202,9 +219,9 @@ def register():
     form = RegisterForm(request.form, meta={'csrf_context': session})
     if request.method == "POST" and form.validate():
         c = create_new_user(
-                name=form.name.data,
-                username=form.username.data.lower(),
-                password=form.password.data)
+            name=form.name.data,
+            username=form.username.data.lower(),
+            password=form.password.data)
         commit()
         session['userid'] = c.id
         flash("You have successfully registered.")
@@ -220,7 +237,11 @@ def home():
     return render_template("home.html")
 
 
-@app.route("/", defaults={"path": ""}, methods=['GET', 'POST'], subdomain="<subdomain>")
+@app.route(
+    "/",
+    defaults={"path": ""},
+    methods=['GET', 'POST'],
+    subdomain="<subdomain>")
 @app.route("/<string:path>", methods=['GET', 'POST'], subdomain="<subdomain>")
 @app.route("/<path:path>", methods=['GET', 'POST'], subdomain="<subdomain>")
 def catch_all(path, subdomain):
@@ -242,36 +263,49 @@ def proxy(endpoint, *args, **kwargs):
         resp = requests.request(
             method=request.method,
             url=endpoint + request.full_path,
-            headers={key: value for (key, value)
-                     in request.headers if key != 'Host'},
+            headers={
+                key: value for (key, value) in request.headers if key != 'Host'
+            },
             data=request.get_data(),
             cookies=request.cookies,
             allow_redirects=True,
-            timeout=int(os.environ.get("GK_TIMEOUT", 5))
-        )
+            timeout=int(os.environ.get("GK_TIMEOUT", 5)))
     except requests.exceptions.ConnectionError:
         # HTTP 502: Bad Gateway
         return abort(502)
     except requests.exceptions.ReadTimeout:
         # HTTP 504: Gateway Timeout
         return abort(504)
-    excluded_headers = ['content-encoding',
-                        'content-length', 'transfer-encoding', 'connection']
-    headers = [(name, value) for (name, value) in resp.raw.headers.items()
+    excluded_headers = [
+        'content-encoding', 'content-length', 'transfer-encoding', 'connection'
+    ]
+    headers = [(name, value)
+               for (name, value) in resp.raw.headers.items()
                if name.lower() not in excluded_headers]
     response = Response(resp.content, resp.status_code, headers)
     return response
 
 
 if AH_SUBDOMAIN:
-    app.add_url_rule("/Login", "login", login, subdomain=AH_SUBDOMAIN, methods=['GET', 'POST'])
+    app.add_url_rule(
+        "/Login",
+        "login",
+        login,
+        subdomain=AH_SUBDOMAIN,
+        methods=['GET', 'POST'])
     app.add_url_rule("/Logout", "logout", logout, subdomain=AH_SUBDOMAIN)
-    app.add_url_rule("/Register", "register", register, subdomain=AH_SUBDOMAIN, methods=['GET', 'POST'])
+    app.add_url_rule(
+        "/Register",
+        "register",
+        register,
+        subdomain=AH_SUBDOMAIN,
+        methods=['GET', 'POST'])
     app.add_url_rule("/", "home", home, subdomain=AH_SUBDOMAIN)
-    app.add_url_rule('/static/<path:filename>',
-                                      endpoint='static',
-                                      subdomain=AH_SUBDOMAIN,
-                                      view_func=app.send_static_file)
+    app.add_url_rule(
+        '/static/<path:filename>',
+        endpoint='static',
+        subdomain=AH_SUBDOMAIN,
+        view_func=app.send_static_file)
 
 
 def get_gatekeeper_info():
@@ -282,13 +316,15 @@ def get_gatekeeper_info():
 @app.errorhandler(502)
 def bad_gateway(error):
     error_p = str(error).split("502 Bad Gateway: ")[1]
-    return render_template('error.html', error_h1="Bad Gateway", error_p=error_p), 502 
+    return render_template(
+        'error.html', error_h1="Bad Gateway", error_p=error_p), 502
 
 
 @app.errorhandler(404)
 def page_not_found(error):
     error_p = str(error).split("404 Not Found: ")[1]
-    return render_template('error.html', error_h1="Page not Found", error_p=error_p), 404
+    return render_template(
+        'error.html', error_h1="Page not Found", error_p=error_p), 404
 
 
 app.jinja_env.globals.update(get_gatekeeper_info=get_gatekeeper_info)
