@@ -7,13 +7,13 @@ import urllib.request
 from datetime import timedelta
 from functools import wraps
 
+import pony.orm as orm
 import pony.orm.dbapiprovider
 import requests
 import tldextract
 from flask import (Flask, Response, abort, flash, g, redirect, render_template,
                    request, session)
 from passlib.context import CryptContext
-from pony.orm import *
 from wtforms import Form, PasswordField, StringField, validators
 from wtforms.csrf.session import SessionCSRF
 
@@ -56,8 +56,8 @@ pwd_context = CryptContext(
     deprecated="auto",
 )
 
-sql_debug(DEBUG)
-db = Database()
+orm.sql_debug(DEBUG)
+db = orm.Database()
 
 USE_MYSQL = "MYSQL_ROOT_PASSWORD" in os.environ
 if USE_MYSQL:
@@ -88,22 +88,22 @@ else:
 
 
 class Account(db.Entity):
-    name = Required(str)
-    username = Required(str)
-    password = Required(str)
+    name = orm.Required(str)
+    username = orm.Required(str)
+    password = orm.Required(str)
 
 
 db.generate_mapping(create_tables=True)
 
 
-@db_session
+@orm.db_session
 def create_new_user(**args):
     args['password'] = pwd_context.encrypt(args['password'])
     Account(**args)
-    commit()
+    orm.commit()
 
 
-@db_session
+@orm.db_session
 def get_account_count():
     return len(Account.select())
 
@@ -143,7 +143,7 @@ class RegisterForm(SecureForm):
 
 
 @app.before_request
-@db_session
+@orm.db_session
 def get_user():
     if 'userid' in session:
         g.user = Account.get(id=session['userid'])
@@ -173,7 +173,7 @@ def requires_auth(f):
 
 
 @app.route("/Login", methods=['GET', 'POST'], subdomain="")
-@db_session
+@orm.db_session
 def login():
     next = request.args.get('next') if (
         request.args.get('next') not in no_redir) else '/'
@@ -209,7 +209,7 @@ def logout():
 
 
 @app.route("/Register", methods=['GET', 'POST'], subdomain="")
-@db_session
+@orm.db_session
 def register():
     if not ALLOW_REGISTRATION:
         return abort(404)
@@ -222,7 +222,7 @@ def register():
             name=form.name.data,
             username=form.username.data.lower(),
             password=form.password.data)
-        commit()
+        orm.commit()
         session['userid'] = c.id
         flash("You have successfully registered.")
         return redirect(next_url)
@@ -232,7 +232,7 @@ def register():
 
 @app.route("/", subdomain="")
 @requires_auth
-@db_session
+@orm.db_session
 def home():
     return render_template("home.html")
 
