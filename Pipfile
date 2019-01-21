@@ -14,7 +14,6 @@ gevent = "*"
 htmlmin = "*"
 tldextract = "*"
 pymysql = "*"
-tornado = "*"
 
 [dev-packages]
 vulture = "*"
