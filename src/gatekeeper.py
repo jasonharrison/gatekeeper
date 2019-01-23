@@ -324,7 +324,7 @@ def bad_gateway(error):
 def page_not_found(error):
     error_p = str(error).split("404 Not Found: ")[1]
     return render_template(
-        'error.html', error_h1="Page not Found", error_p=error_p), 404
+        'error.html', error_h1="Not Found", error_p=error_p), 404
 
 
 app.jinja_env.globals.update(get_gatekeeper_info=get_gatekeeper_info)
