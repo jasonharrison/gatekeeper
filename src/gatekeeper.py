@@ -9,6 +9,7 @@ from functools import wraps
 
 import pony.orm as orm
 import pony.orm.dbapiprovider
+import pyotp
 import requests
 import tldextract
 from flask import (Flask, Response, abort, flash, g, redirect, render_template,
@@ -91,6 +92,7 @@ class Account(db.Entity):
     name = orm.Required(str)
     username = orm.Required(str)
     password = orm.Required(str)
+    totp_secret = orm.Required(str)
 
 
 db.generate_mapping(create_tables=True)
@@ -108,11 +110,18 @@ def get_account_count():
     return len(Account.select())
 
 
+@orm.db_session
+def verify_totp_secret(secret, given_totp):
+    totp = pyotp.TOTP(secret)
+    return totp.verify(given_totp)
+
+
 if get_account_count() == 0:
     create_new_user(
         name=os.environ['GK_DEFAULT_NAME'],
         username=os.environ['GK_DEFAULT_USERNAME'],
-        password=os.environ['GK_DEFAULT_PASSWORD'])
+        password=os.environ['GK_DEFAULT_PASSWORD'],
+        totp_secret=os.environ['GK_DEFAULT_TOTP_SECRET'])
 
 
 class SecureForm(Form):
@@ -129,6 +138,7 @@ class LoginForm(SecureForm):
         'Username', [validators.required(),
                      validators.Length(min=4, max=25)])
     password = PasswordField('Password', [validators.required()])
+    otp = StringField('Security Code', [validators.required()])
 
 
 class RegisterForm(SecureForm):
@@ -180,15 +190,21 @@ def login():
     next_url = safe_next_url(next)
     form = LoginForm(request.form, meta={'csrf_context': session})
     if request.method == "POST" and form.validate():
-        c = Account.get(username=form.username.data.lower())
-        if not c or not pwd_context.verify(form.password.data, c.password):
-            flash("Incorrect username or password.")
+        user = Account.get(username=form.username.data.lower())
+        if not user \
+            or not pwd_context.verify(
+                form.password.data,
+                user.password) \
+            or not verify_totp_secret(
+                    user.totp_secret,
+                    form.otp.data):
+            flash("Incorrect username, password, or security token.")
             return render_template(
                 "login.html",
                 form=form,
                 next=next,
                 allow_registration=ALLOW_REGISTRATION)
-        session['userid'] = c.id
+        session['userid'] = user.id
         return redirect(next_url)
     else:
         return render_template(
