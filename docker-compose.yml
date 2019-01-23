@@ -6,6 +6,11 @@ services:
     image: mysql
     command: --default-authentication-plugin=mysql_native_password
     restart: always
+    volumes:
+      - type: bind
+        source: ./data/mysql
+        target: /var/lib/mysql
+
     env_file:
       - 'config.env'
 
@@ -15,9 +20,17 @@ services:
     env_file:
       - 'config.env'
 
+  http-to-https:
+    image: articulate/http-to-https
+    restart: always
+    ports:
+      - 0.0.0.0:80:80
+    restart: always
+
   app:
     stdin_open: true
     tty: true
+    restart: always
     build:
       context: .
       dockerfile: Dockerfile
